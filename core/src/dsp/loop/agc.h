@@ -2,6 +2,7 @@
 // Manual/auto AGC switching adapted from the SDRPP fork by qrp73 (https://github.com/qrp73/SDRPP).
 #include <assert.h>
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include "../types.h"
 
@@ -80,6 +81,16 @@ namespace dsp::loop {
             _initGain = initGain;
         }
 
+        // Optional external hold switch (e.g. "transmitting"). While it reads
+        // true the gain is frozen at its current value: the loop neither attacks
+        // nor decays, so after the hold the AGC resumes exactly where it was
+        // instead of recovering from whatever it saw meanwhile (the radio's own
+        // TX signal on a panadapter). Output is still clipped to maxOutputAmp.
+        // The flag must outlive this AGC or be cleared before it goes away.
+        void setHoldFlag(const std::atomic<bool>* hold) {
+            _hold = hold;
+        }
+
         void reset() {
             assert(_init);
             amp = _setPoint / _initGain;
@@ -88,6 +99,7 @@ namespace dsp::loop {
 
         // IN-PLACE: safe (in == out).
         inline int process(int count, const T* in, T* out) {
+            const bool held = _hold && _hold->load(std::memory_order_relaxed);
             for (int i = 0; i < count; i++) {
                 // Get signal amplitude
                 float inAmp;
@@ -101,7 +113,7 @@ namespace dsp::loop {
                     static_assert(dependent_false_v<T>, "Unsupported sample type");
                 }
 
-                if (_enabled) {
+                if (_enabled && !held) {
                     // Update average amplitude
                     if (inAmp != 0.0f) {
                         amp = (inAmp > amp) ? ((amp * _invAttack) + (inAmp * _attack)) : ((amp * _invDecay) + (inAmp * _decay));
@@ -135,7 +147,7 @@ namespace dsp::loop {
                     out[i] = in[i] * _gain;
                 }
                 else {
-                    // Manual mode: fixed gain, clipped to the max output amplitude
+                    // Manual mode (or held): fixed gain, clipped to the max output amplitude
                     out[i] = in[i] * ((inAmp * _gain > _maxOutputAmp) ? (_maxOutputAmp / inAmp) : _gain);
                 }
             }
@@ -155,6 +167,7 @@ namespace dsp::loop {
         float _initGain;
         float _gain = 1.0f;
         bool _enabled = true;
+        const std::atomic<bool>* _hold = nullptr;
 
         float amp = 1.0;
 

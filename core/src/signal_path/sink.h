@@ -7,6 +7,8 @@
 #include "../dsp/audio/volume.h"
 #include "../dsp/sink/null_sink.h"
 #include <mutex>
+#include <atomic>
+#include "tx_detector.h"
 #include <utils/event.h>
 #include <vector>
 
@@ -111,6 +113,16 @@ public:
 
     std::vector<std::string> getStreamNames();
 
+    // "Mute during TX": fade every audio stream out while sigpath::txState
+    // reports transmit, and run the IF-panadapter TX detector (TxDetector) to
+    // produce that state. Call once after the IQ front end is running.
+    void initTxMute();
+    void deinitTxMute();
+    void setTxMuteEnabled(bool enabled);
+    bool getTxMuteEnabled() const { return txMuteEnabled.load(std::memory_order_relaxed); }
+    // Last sigpath::txState seen (true = transmitting), whatever its source.
+    bool isTxActive() const { return txActive.load(std::memory_order_relaxed); }
+
     Event<std::string> onSinkProviderRegistered;
     Event<std::string> onSinkProviderUnregister;
     Event<std::string> onSinkProviderUnregistered;
@@ -123,6 +135,18 @@ private:
     void loadStreamConfig(std::string name);
     void saveStreamConfig(std::string name);
     void refreshProviders();
+    void showTxMuteMenu(float menuWidth);
+    void saveTxMuteConfig();
+    void updateTxGate();
+    static void txStateHandler(bool txActive, void* ctx);
+
+    TxDetector txDetector;
+    EventHandler<bool> txHandler;
+    bool txMuteInitialized = false;
+    std::atomic<bool> txMuteEnabled{ false };
+    std::atomic<bool> txActive{ false };
+    // Read by every stream's volume block: txMuteEnabled && txActive
+    std::atomic<bool> txGate{ false };
 
     std::map<std::string, SinkProvider> providers;
     std::map<std::string, Stream*> streams;

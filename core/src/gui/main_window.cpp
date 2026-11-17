@@ -108,6 +108,7 @@ void MainWindow::init() {
 
     sigpath::iqFrontEnd.init(&dummyStream, 8000000, true, 1, false, 1024, 20.0, IQFrontEnd::FFTWindow::NUTTALL, acquireFFTBuffer, releaseFFTBuffer, this);
     sigpath::iqFrontEnd.start();
+    sigpath::sinkManager.initTxMute();
 
     vfoCreatedHandler.handler = vfoAddedHandler;
     vfoCreatedHandler.ctx = this;

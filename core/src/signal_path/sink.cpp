@@ -5,6 +5,8 @@
 #include <gui/icons.h>
 
 #include <core.h>
+#include <signal_path/signal_path.h>
+#include <algorithm>
 
 #define CONCAT(a, b) ((std::string(a) + b).c_str())
 
@@ -25,6 +27,7 @@ void SinkManager::Stream::init(dsp::stream<dsp::stereo_t>* in, EventHandler<floa
     splitter.init(_in);
     splitter.bindStream(&volumeInput);
     volumeAjust.init(&volumeInput, 1.0f, false);
+    volumeAjust.setSampleRate(sampleRate);
     sinkOut = &volumeAjust.out;
 }
 
@@ -82,6 +85,7 @@ void SinkManager::Stream::unbindStream(dsp::stream<dsp::stereo_t>* stream) {
 void SinkManager::Stream::setSampleRate(float sampleRate) {
     std::lock_guard<std::mutex> lck(ctrlMtx);
     _sampleRate = sampleRate;
+    volumeAjust.setSampleRate(sampleRate);
     srChange.emit(sampleRate);
 }
 
@@ -148,6 +152,8 @@ void SinkManager::registerStream(std::string name, SinkManager::Stream* stream) 
     stream->sink = provider.create(stream, name, provider.ctx);
     stream->providerId = std::distance(providerNames.begin(), std::find(providerNames.begin(), providerNames.end(), "None"));
     stream->providerName = "None";
+
+    stream->volumeAjust.setTxGateFlag(&txGate);
 
     streams[name] = stream;
     streamNames.push_back(name);
@@ -384,6 +390,112 @@ void SinkManager::showMenu() {
             ImGui::Separator();
         }
         ImGui::Spacing();
+    }
+
+    if (txMuteInitialized) {
+        ImGui::Separator();
+        ImGui::Spacing();
+        showTxMuteMenu(menuWidth);
+    }
+}
+
+void SinkManager::initTxMute() {
+    if (txMuteInitialized) { return; }
+    bool enabled = false;
+    float threshold = txDetector.getThreshold();
+    {
+        auto configAccess = core::configManager.read();
+        json conf = configAccess.value("txMute", json());
+        if (conf.is_object()) {
+            enabled = conf.value("enabled", false);
+            threshold = conf.value("thresholdDb", threshold);
+        }
+    }
+    txDetector.setThreshold(std::clamp(threshold, 3.0f, 40.0f));
+
+    txHandler.ctx = this;
+    txHandler.handler = txStateHandler;
+    sigpath::txState.bindHandler(&txHandler);
+    txMuteInitialized = true;
+    setTxMuteEnabled(enabled);
+}
+
+void SinkManager::deinitTxMute() {
+    if (!txMuteInitialized) { return; }
+    txDetector.stop();
+    sigpath::txState.unbindHandler(&txHandler);
+    txMuteInitialized = false;
+}
+
+void SinkManager::setTxMuteEnabled(bool enabled) {
+    txMuteEnabled.store(enabled, std::memory_order_relaxed);
+    if (txMuteInitialized) {
+        try {
+            if (enabled) { txDetector.start(); }
+            else { txDetector.stop(); }
+        }
+        catch (const std::exception& e) {
+            flog::error("[SinkManager] Could not start the TX detector: {0}", e.what());
+        }
+    }
+    updateTxGate();
+}
+
+void SinkManager::txStateHandler(bool txActive, void* ctx) {
+    SinkManager* _this = (SinkManager*)ctx;
+    _this->txActive.store(txActive, std::memory_order_relaxed);
+    _this->updateTxGate();
+}
+
+void SinkManager::updateTxGate() {
+    txGate.store(txMuteEnabled.load(std::memory_order_relaxed) && txActive.load(std::memory_order_relaxed), std::memory_order_relaxed);
+}
+
+void SinkManager::saveTxMuteConfig() {
+    json conf;
+    conf["enabled"] = getTxMuteEnabled();
+    conf["thresholdDb"] = txDetector.getThreshold();
+    core::configManager.edit().set("txMute", conf);
+}
+
+void SinkManager::showTxMuteMenu(float menuWidth) {
+    bool enabled = getTxMuteEnabled();
+    if (ImGui::Checkbox("Mute during TX##_sdrpp_tx_mute", &enabled)) {
+        setTxMuteEnabled(enabled);
+        saveTxMuteConfig();
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Detects transmit from the noise floor drop on an IF panadapter\n"
+                          "(or from the radio, when the source reports it), mutes the audio\n"
+                          "and fades it back in afterwards. The waterfall keeps showing the signal.");
+    }
+    if (!enabled) { return; }
+
+    if (txActive.load(std::memory_order_relaxed)) {
+        ImGui::SameLine();
+        ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "TX");
+    }
+
+    ImGui::LeftLabel("Floor drop");
+    ImGui::SetNextItemWidth(menuWidth - ImGui::GetCursorPosX());
+    float threshold = txDetector.getThreshold();
+    if (ImGui::SliderFloat("##_sdrpp_tx_mute_threshold", &threshold, 3.0f, 40.0f, "%.0f dB")) {
+        txDetector.setThreshold(threshold);
+        saveTxMuteConfig();
+    }
+
+    if (txDetector.isRunning() && txDetector.hasReference()) {
+        float floor = txDetector.getFloorDb();
+        float ref = txDetector.getReferenceDb();
+        ImGui::TextDisabled("Floor %.1f dB  RX ref %.1f dB  (%+.1f)", floor, ref, floor - ref);
+    }
+    if (txDetector.isRunning()) {
+        if (ImGui::Button("Re-learn RX floor##_sdrpp_tx_mute_relearn")) {
+            txDetector.relearn();
+        }
+        if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip("Use after changing the SDR gain: a lower floor otherwise looks like TX.");
+        }
     }
 }
 

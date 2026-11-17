@@ -127,6 +127,14 @@ public:
         stream.init(afChain.out, &srChangeHandler, audioSampleRate);
         sigpath::sinkManager.registerStream(name, &stream);
 
+        // Freeze the demodulator AGC while transmitting, so it does not pump
+        // down on the radio's own signal and leave the audio quiet after TX.
+        txStateHandler.ctx = this;
+        txStateHandler.handler = [](bool txActive, void* ctx) {
+            ((RadioModule*)ctx)->agcHold.store(txActive, std::memory_order_relaxed);
+        };
+        sigpath::txState.bindHandler(&txStateHandler);
+
         // Select the demodulator
         selectDemodByID((DemodID)selectedDemodID);
 
@@ -147,6 +155,7 @@ public:
     }
 
     ~RadioModule() {
+        sigpath::txState.unbindHandler(&txStateHandler);
         core::modComManager.unregisterInterface(name);
         gui::menu.removeEntry(name);
         stream.stop();
@@ -453,6 +462,7 @@ private:
             delete selectedDemod;
         }
         selectedDemod = demod;
+        selectedDemod->setAGCHoldFlag(&agcHold);
 
         // Give the demodulator the most recent audio SR
         selectedDemod->AFSampRateChanged(audioSampleRate);
@@ -864,6 +874,9 @@ private:
 
     // Handlers
     EventHandler<double> onUserChangedBandwidthHandler;
+    EventHandler<bool> txStateHandler;
+    // True while transmitting (sigpath::txState); demodulator AGCs hold their gain.
+    std::atomic<bool> agcHold{ false };
     EventHandler<float> srChangeHandler;
     EventHandler<dsp::stream<dsp::complex_t>*> ifChainOutputChanged;
     EventHandler<dsp::stream<dsp::stereo_t>*> afChainOutputChanged;

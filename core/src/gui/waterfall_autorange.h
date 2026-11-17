@@ -62,4 +62,5 @@ private:
     float btnHold = 0.0f;     // long-press timer
     bool longPressed = false; // long-press already latched this press
     float updateAccum = 0.0f; // throttles the continuous fit to ~10 Hz
+    float txGraceLeft = 0.0f; // pause after TX ends, until the picture settles
 };

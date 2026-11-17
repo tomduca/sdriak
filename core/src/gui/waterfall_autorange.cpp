@@ -4,6 +4,7 @@
 #include <gui/style.h>
 #include <gui/widgets/toggle_style.h>
 #include <core.h>      // core::configManager
+#include <signal_path/signal_path.h> // sigpath::sinkManager (TX state)
 #ifdef __ANDROID__
 #include <android_backend.h>
 #endif
@@ -155,6 +156,22 @@ void WaterfallAutoRange::drawButton(float side, const ImVec4& tint) {
 
 void WaterfallAutoRange::update() {
     if (!stickyEnabled) { return; }
+
+    // Pause while transmitting, and for a moment after: the radio's own signal
+    // (or the dropped floor of a panadapter cut off from the antenna) would
+    // drag the range away from the receive picture. The latch itself is left
+    // alone, so the button stays on and the config is never touched.
+    const float TX_GRACE_S = 1.0f;
+    if (sigpath::sinkManager.isTxActive()) {
+        txGraceLeft = TX_GRACE_S;
+        updateAccum = 0.0f;
+        return;
+    }
+    if (txGraceLeft > 0.0f) {
+        txGraceLeft -= ImGui::GetIO().DeltaTime;
+        updateAccum = 0.0f;
+        return;
+    }
 
     // Throttle to ~10 Hz (the deep-research 4-10 Hz recommendation): for users
     // who enabled fullWaterfallUpdate, each range change forces a full

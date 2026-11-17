@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cmath>
 #include <cstddef>
 #include <string>
@@ -170,6 +171,10 @@ namespace demod {
         virtual bool getHighPassAllowed() = 0;
         virtual bool getSquelchAllowed() = 0;
         virtual dsp::stream<dsp::stereo_t>* getOutput() = 0;
+        // Point the demodulator's AGC at an external hold flag: while it reads
+        // true the AGC gain stays frozen (used during transmit). No-op for
+        // demodulators without an AGC.
+        virtual void setAGCHoldFlag(const std::atomic<bool>* hold) {}
 
     protected:
         friend struct AGCControls;

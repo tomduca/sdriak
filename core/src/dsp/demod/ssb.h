@@ -80,6 +80,13 @@ namespace dsp::demod {
             agc.setEnabled(enabled);
         }
 
+        // Freeze the AGC gain while *hold reads true (see loop::AGC::setHoldFlag).
+        void setAGCHoldFlag(const std::atomic<bool>* hold) {
+            assert(base_type::_block_init);
+            std::lock_guard<std::recursive_mutex> lck(base_type::ctrlMtx);
+            agc.setHoldFlag(hold);
+        }
+
         void setAGCGain(float gain) {
             assert(base_type::_block_init);
             std::lock_guard<std::recursive_mutex> lck(base_type::ctrlMtx);

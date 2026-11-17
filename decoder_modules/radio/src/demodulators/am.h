@@ -107,6 +107,7 @@ namespace demod {
         bool getHighPassAllowed() { return true; }
         bool getSquelchAllowed() { return true; }
         dsp::stream<dsp::stereo_t>* getOutput() { return &demod.out; }
+        void setAGCHoldFlag(const std::atomic<bool>* hold) { demod.setAGCHoldFlag(hold); }
 
     private:
         dsp::demod::AM<dsp::stereo_t> demod;

@@ -560,6 +560,7 @@ int sdrpp_main(int argc, char* argv[]) {
     // Terminate backend (TODO: CHECK RETURN VALUE)
     backend::end();
 
+    sigpath::sinkManager.deinitTxMute();
     sigpath::iqFrontEnd.stop();
 
     coreConfigSaved = core::configManager.shutdown();
