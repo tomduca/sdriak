@@ -111,6 +111,9 @@ private:
     }
 
     void updateBindings() {
+        // While enabled, this menu hosts the core's "Mute during TX" controls
+        // (they fall back to the Sinks menu otherwise).
+        sigpath::sinkManager.setTxMuteMenuHosted(enabled);
         if (enabled) {
             flog::info("Enabling noise reduction things");
 
@@ -243,6 +246,11 @@ private:
                                   "The NR processes in 16-bit fixed point and auto-scales to\n"
                                   "this level to preserve headroom.");
             }
+        }
+
+        if (enabled) {
+            ImGui::Separator();
+            sigpath::sinkManager.showTxMuteMenu(ImGui::GetContentRegionAvail().x);
         }
 
         if (!enabled) { style::endDisabled(); }

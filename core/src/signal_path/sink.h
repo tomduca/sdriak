@@ -120,6 +120,11 @@ public:
     void deinitTxMute();
     void setTxMuteEnabled(bool enabled);
     bool getTxMuteEnabled() const { return txMuteEnabled.load(std::memory_order_relaxed); }
+    // Draw the "Mute during TX" controls. Shown in the Sinks menu unless a
+    // module (Noise Reduction) hosts them in its own menu.
+    void showTxMuteMenu(float menuWidth);
+    void setTxMuteMenuHosted(bool hosted) { txMuteMenuHosted = hosted; }
+
     // Last sigpath::txState seen (true = transmitting), whatever its source.
     bool isTxActive() const { return txActive.load(std::memory_order_relaxed); }
 
@@ -135,7 +140,6 @@ private:
     void loadStreamConfig(std::string name);
     void saveStreamConfig(std::string name);
     void refreshProviders();
-    void showTxMuteMenu(float menuWidth);
     void saveTxMuteConfig();
     void updateTxGate();
     static void txStateHandler(bool txActive, void* ctx);
@@ -143,6 +147,7 @@ private:
     TxDetector txDetector;
     EventHandler<bool> txHandler;
     bool txMuteInitialized = false;
+    bool txMuteMenuHosted = false;
     std::atomic<bool> txMuteEnabled{ false };
     std::atomic<bool> txActive{ false };
     // Read by every stream's volume block: txMuteEnabled && txActive

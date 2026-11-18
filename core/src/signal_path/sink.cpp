@@ -392,7 +392,7 @@ void SinkManager::showMenu() {
         ImGui::Spacing();
     }
 
-    if (txMuteInitialized) {
+    if (txMuteInitialized && !txMuteMenuHosted) {
         ImGui::Separator();
         ImGui::Spacing();
         showTxMuteMenu(menuWidth);
@@ -459,6 +459,7 @@ void SinkManager::saveTxMuteConfig() {
 }
 
 void SinkManager::showTxMuteMenu(float menuWidth) {
+    if (!txMuteInitialized) { return; }
     bool enabled = getTxMuteEnabled();
     if (ImGui::Checkbox("Mute during TX##_sdrpp_tx_mute", &enabled)) {
         setTxMuteEnabled(enabled);
