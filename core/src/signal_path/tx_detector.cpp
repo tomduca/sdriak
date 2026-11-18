@@ -27,8 +27,14 @@ void TxDetector::start() {
     relearnRequested.store(false, std::memory_order_relaxed);
     resetState();
 
-    iqStream = std::make_unique<dsp::stream<dsp::complex_t>>();
-    sink.init(iqStream.get(), handler, this);
+    // The stream and the sink are set up once and reused: init() registers
+    // the stream as an input of the block every time it is called, so
+    // re-initialising with a fresh stream would leave the freed one in the
+    // block's input list and crash the next stop().
+    if (!iqStream) {
+        iqStream = std::make_unique<dsp::stream<dsp::complex_t>>();
+        sink.init(iqStream.get(), handler, this);
+    }
     sink.start();
     sigpath::iqFrontEnd.bindIQStream(iqStream.get());
     running = true;
@@ -39,7 +45,6 @@ void TxDetector::stop() {
     if (!running) { return; }
     sigpath::iqFrontEnd.unbindIQStream(iqStream.get());
     sink.stop();
-    iqStream.reset();
     running = false;
     setTx(false);
     flog::info("[TxDetector] Stopped");
