@@ -55,7 +55,9 @@ private:
     static constexpr int FFT_SIZE = 1024;
     static constexpr double FRAME_INTERVAL = 0.02;   // one floor estimate every 20 ms
     static constexpr double FLOOR_TAU = 0.04;        // smoothing of the floor estimate
-    static constexpr double REFERENCE_TAU = 2.0;     // tracking of the receive floor
+    static constexpr double REFERENCE_TAU = 2.0;     // tracking of the receive floor (up)
+    static constexpr double REFERENCE_DOWN_TAU = 60.0; // tracking when the floor sits below it
+    static constexpr double REFERENCE_DEADBAND_DB = 1.5; // normal floor jitter around the reference
     static constexpr double SETTLE_SECONDS = 1.0;    // no reference tracking right after TX
     static constexpr double MAX_TX_SECONDS = 180.0;  // longer "TX" is a level change, accept it
     static constexpr int CONFIRM_FRAMES = 2;         // frames beyond the threshold to switch

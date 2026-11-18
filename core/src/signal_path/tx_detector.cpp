@@ -171,7 +171,12 @@ void TxDetector::processFrame() {
                 settleLeft -= frameSeconds;
             }
             else {
-                double a = std::exp(-frameSeconds / REFERENCE_TAU);
+                // Follow the floor up quickly, but down only slowly: a drop
+                // smaller than the threshold (quiet band, small TX contrast)
+                // must not drag the reference down during a transmission, or
+                // the drop vanishes and TX is never detected.
+                double tau = (drop > REFERENCE_DEADBAND_DB) ? REFERENCE_DOWN_TAU : REFERENCE_TAU;
+                double a = std::exp(-frameSeconds / tau);
                 refDb = a * refDb + (1.0 - a) * smoothedDb;
             }
         }
