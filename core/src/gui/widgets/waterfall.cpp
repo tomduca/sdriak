@@ -1498,6 +1498,16 @@ namespace ImGui {
         return waterfallMax;
     }
 
+    void WaterFall::setWaterfallRange(float min, float max, bool redraw) {
+        std::lock_guard<std::recursive_mutex> lck(buf_mtx);
+        if (min == waterfallMin && max == waterfallMax) {
+            return;
+        }
+        waterfallMin = min;
+        waterfallMax = max;
+        if (_fullUpdate && redraw) { updateWaterfallFb(); };
+    }
+
     void WaterFall::updateAllVFOs(bool checkRedrawRequired) {
         for (auto const& [name, vfo] : vfos) {
             if (checkRedrawRequired && !vfo->redrawRequired) { continue; }
