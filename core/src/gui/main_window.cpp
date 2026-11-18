@@ -908,12 +908,21 @@ void MainWindow::draw() {
 
     // Continuous ("sticky") auto-range steps here (outside the controls child)
     // so it keeps tracking even when the menu is collapsed.
+    const float preAutoMin = fftMin;
+    const float preAutoMax = fftMax;
     autoRange.update();
+
+    // A range step from the continuous auto-range only colours the new lines:
+    // recolouring the whole history ~10 times a second costs CPU and makes the
+    // past waterfall shimmer. Manual changes (sliders, one-shot fit, config)
+    // still recolour everything, as "Full Waterfall Update" asks.
+    const bool autoStepOnly = (fftMin != preAutoMin || fftMax != preAutoMax)
+                              && preAutoMin == gui::waterfall.getWaterfallMin()
+                              && preAutoMax == gui::waterfall.getWaterfallMax();
 
     gui::waterfall.setFFTMin(fftMin);
     gui::waterfall.setFFTMax(fftMax);
-    gui::waterfall.setWaterfallMin(fftMin);
-    gui::waterfall.setWaterfallMax(fftMax);
+    gui::waterfall.setWaterfallRange(fftMin, fftMax, !autoStepOnly);
 
 #ifdef __ANDROID__
     // Exit confirmation, requested by holding the hamburger menu button.

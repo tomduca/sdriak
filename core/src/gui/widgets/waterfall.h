@@ -118,6 +118,10 @@ namespace ImGui {
         void setWaterfallMax(float max);
         float getWaterfallMax();
 
+        // Set both ends at once (at most one recolour). With redraw false the
+        // new range applies to incoming lines only, even with full update on.
+        void setWaterfallRange(float min, float max, bool redraw = true);
+
         void setZoom(double zoomLevel);
         void setOffset(double zoomOffset);
 
