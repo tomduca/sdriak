@@ -61,7 +61,8 @@ public:
 
         serverMode = (bool)core::args["server"];
 
-        sampleRate = sampleRates[0];
+        srId = 1; // 1.024 MHz
+        sampleRate = sampleRates[srId];
 
         handler.ctx = this;
         handler.selectHandler = menuSelected;
@@ -205,7 +206,7 @@ public:
 
             // Seed whatever this device is missing, which for a device never seen
             // before is the whole block.
-            dev.ensure("sampleRate", 2400000.0);
+            dev.ensure("sampleRate", 1024000.0);
             dev.ensure("directSampling", directSamplingMode);
             dev.ensure("ppm", 0);
             dev.ensure("biasT", biasT);
@@ -215,7 +216,10 @@ public:
             dev.ensure("gain", gainId);
 
             // Load config
-            int selectedSr = 0;
+            // Read as double: the menu stores the rate as a double (1024000.0),
+            // and the config refuses to read a non-integer JSON number into an
+            // int, which silently fell back to the first rate (250 kHz).
+            double selectedSr = 0.0;
             if (dev.tryGet("sampleRate", selectedSr)) {
                 for (int i = 0; i < 11; i++) {
                     if (sampleRates[i] == selectedSr) {
