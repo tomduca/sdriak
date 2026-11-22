@@ -202,11 +202,8 @@ namespace ImGui {
                 ImVec2 txtSz = ImGui::CalcTextSize(buf);
                 float tx = roundf(xPos - (txtSz.x / 2.0));
                 if (tx < fftAreaMin.x + labelPad || tx + txtSz.x > fftAreaMax.x - labelPad) { continue; }
-                ImVec2 tpos(tx, roundf(fftAreaMax.y - txtSz.y - labelPad));
-                window->DrawList->AddRectFilled(ImVec2(tpos.x - labelPad, tpos.y),
-                                                ImVec2(tpos.x + txtSz.x + labelPad, tpos.y + txtSz.y),
-                                                ImGui::ColorConvertFloat4ToU32(gui::themeManager.waterfallBg));
-                window->DrawList->AddText(tpos, text, buf);
+                // Same text and colour as the frequency scale labels
+                window->DrawList->AddText(ImVec2(tx, roundf(fftAreaMax.y - txtSz.y - labelPad)), text, buf);
             }
         }
 
