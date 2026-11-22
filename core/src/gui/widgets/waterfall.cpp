@@ -175,16 +175,23 @@ namespace ImGui {
             window->DrawList->AddText(ImVec2(roundf(xPos - (txtSz.x / 2.0)), fftAreaMax.y + txtSz.y), text, buf);
         }
 
-        // Span scale: offsets from the centre of the view, so the marks measure
-        // the displayed bandwidth rather than a tuning. Zero in the middle,
-        // positive to the left and negative to the right, on the same round
-        // step as the frequency grid, labelled along the bottom of the FFT.
+        // Span scale: offsets from the selected VFO's tuning line (the centre
+        // of the view when there is no VFO), so the marks measure bandwidth
+        // rather than a frequency. Zero on the line, positive to the left and
+        // negative to the right, on the same round step as the frequency grid,
+        // labelled along the bottom of the FFT. Anchoring on the line keeps the
+        // zero on the radio's dial when the VFO moves between IF sidebands.
         if (spanScaleVisible) {
-            const double viewCenter = (lowerFreq + upperFreq) / 2.0;
-            const double centerX = fftAreaMin.x + ((viewCenter - lowerFreq) * horizScale);
-            const int steps = (int)std::floor((viewBandwidth / 2.0) / range);
+            double centerX = fftAreaMin.x + (dataWidth / 2.0);
+            auto sel = vfos.find(selectedVFO);
+            if (sel != vfos.end() && sel->second) {
+                centerX = sel->second->lineMin.x;
+            }
+            const double stepPx = range * horizScale;
+            const int kMin = (int)std::ceil((fftAreaMin.x - centerX) / stepPx);
+            const int kMax = (int)std::floor((fftAreaMax.x - centerX) / stepPx);
             const float labelPad = (float)style::scale(3.0f);
-            for (int k = -steps; k <= steps; k++) {
+            for (int k = kMin; k <= kMax; k++) {
                 const double xPos = centerX + (k * range * horizScale);
                 if (xPos < fftAreaMin.x || xPos > fftAreaMax.x) { continue; }
                 window->DrawList->AddLine(ImVec2(roundf(xPos), fftAreaMin.y + 1),
