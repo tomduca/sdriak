@@ -177,6 +177,7 @@ int sdrpp_main(int argc, char* argv[]) {
     defConfig[freq_memory::ROOT] = freq_memory::defaults();
     defConfig["fullWaterfallUpdate"] = false;
     defConfig["showFreqScale"] = true;
+    defConfig["showSpanScale"] = false;
     defConfig["max"] = 0.0;
     defConfig["maximized"] = false;
     defConfig["fullscreen"] = false;
