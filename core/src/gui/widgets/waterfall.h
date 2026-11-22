@@ -143,6 +143,12 @@ namespace ImGui {
 
         void setFullWaterfallUpdate(bool fullUpdate);
 
+        // Show the frequency labels between the FFT and the waterfall. Hidden,
+        // the waterfall joins the FFT directly (useful on a transceiver IF,
+        // where the SDR frequency is not the radio's dial frequency).
+        void setFreqScaleVisible(bool visible);
+        bool isFreqScaleVisible() { return freqScaleVisible; }
+
         void setBandPlanPos(int pos);
 
         void setFFTHold(bool hold);
@@ -311,6 +317,7 @@ namespace ImGui {
         bool bandplanVisible = false;
 
         bool _fullUpdate = true;
+        bool freqScaleVisible = true;
 
         int bandPlanPos = BANDPLAN_POS_BOTTOM;
 

@@ -15,6 +15,7 @@
 namespace displaymenu {
     bool showWaterfall;
     bool fullWaterfallUpdate = true;
+    bool showFreqScale = true;
     int colorMapId = 0;
     std::vector<std::string> colorMapNames;
     std::string colorMapNamesTxt = "";
@@ -75,6 +76,7 @@ namespace displaymenu {
             configAccess.tryGet("showWaterfall", showWaterfall);
             configAccess.tryGet("colorMap", colormapName);
             configAccess.tryGet("fullWaterfallUpdate", fullWaterfallUpdate);
+            configAccess.tryGet("showFreqScale", showFreqScale);
             configAccess.tryGet("fftSize", fftSize);
             configAccess.tryGet("fftRate", fftRate);
 
@@ -118,6 +120,7 @@ namespace displaymenu {
         }
 
         gui::waterfall.setFullWaterfallUpdate(fullWaterfallUpdate);
+        gui::waterfall.setFreqScaleVisible(showFreqScale);
 
         fftSizeId = fftSizes.keyExists(fftSize) ? fftSizes.keyId(fftSize) : fftSizes.valueId(65536);
         sigpath::iqFrontEnd.setFFTSize(fftSizes.value(fftSizeId));
@@ -166,6 +169,11 @@ namespace displaymenu {
         if (ImGui::Checkbox("Full Waterfall Update##_sdrpp", &fullWaterfallUpdate)) {
             gui::waterfall.setFullWaterfallUpdate(fullWaterfallUpdate);
             core::configManager.edit().set("fullWaterfallUpdate", fullWaterfallUpdate);
+        }
+
+        if (ImGui::Checkbox("Show Frequency Scale##_sdrpp", &showFreqScale)) {
+            gui::waterfall.setFreqScaleVisible(showFreqScale);
+            core::configManager.edit().set("showFreqScale", showFreqScale);
         }
 
         if (ImGui::Checkbox("Lock Menu Order##_sdrpp", &gui::menu.locked)) {

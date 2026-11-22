@@ -163,6 +163,7 @@ namespace ImGui {
             window->DrawList->AddLine(ImVec2(roundf(xPos), fftAreaMin.y + 1),
                                       ImVec2(roundf(xPos), fftAreaMax.y),
                                       IM_COL32(50, 50, 50, 255), style::lineWidth());
+            if (!freqScaleVisible) { continue; }
             window->DrawList->AddLine(ImVec2(roundf(xPos), fftAreaMax.y),
                                       ImVec2(roundf(xPos), fftAreaMax.y + scaleVOfsset),
                                       text, style::lineWidth());
@@ -880,14 +881,20 @@ namespace ImGui {
 
         int lastWaterfallHeight = waterfallHeight;
 
+        // Height of the frequency scale strip under the FFT. When it is hidden
+        // the space goes to the waterfall (or to the FFT if there is none), so
+        // the waterfall sits right under the FFT.
+        const float freqScaleHeight = freqScaleVisible ? (float)style::scale(40.0f) : 0.0f;
+        const int freqScaleGap = (int)((float)style::scale(40.0f) - freqScaleHeight);
+
         if (waterfallVisible) {
             int effectiveFFTAreaHeight = style::clampSplit(FFTAreaHeight, widgetSize.y, 150.0f, 50.0f);
             newFFTAreaHeight = effectiveFFTAreaHeight;
             fftHeight = effectiveFFTAreaHeight - style::scale(50.0f);
-            waterfallHeight = widgetSize.y - fftHeight - style::scale(50.0f) - 2;
+            waterfallHeight = widgetSize.y - fftHeight - style::scale(50.0f) - 2 + freqScaleGap;
         }
         else {
-            fftHeight = widgetSize.y - style::scale(50.0f);
+            fftHeight = widgetSize.y - style::scale(50.0f) + freqScaleGap;
         }
         dataWidth = widgetSize.x - style::scale(60.0f);
 
@@ -949,7 +956,7 @@ namespace ImGui {
         fftAreaMax = ImVec2(fftAreaMin.x + dataWidth, fftAreaMin.y + fftHeight + 1);
 
         freqAreaMin = ImVec2(fftAreaMin.x, fftAreaMax.y + 1);
-        freqAreaMax = ImVec2(fftAreaMax.x, fftAreaMax.y + (float)style::scale(40.0f));
+        freqAreaMax = ImVec2(fftAreaMax.x, fftAreaMax.y + freqScaleHeight);
 
         wfMin = ImVec2(fftAreaMin.x, freqAreaMax.y + 1);
         wfMax = ImVec2(fftAreaMin.x + dataWidth, wfMin.y + waterfallHeight);
@@ -1465,6 +1472,13 @@ namespace ImGui {
 
     float WaterFall::getFFTMax() {
         return fftMax;
+    }
+
+    void WaterFall::setFreqScaleVisible(bool visible) {
+        std::lock_guard<std::recursive_mutex> lck(buf_mtx);
+        if (visible == freqScaleVisible) { return; }
+        freqScaleVisible = visible;
+        onResize();
     }
 
     void WaterFall::setFullWaterfallUpdate(bool fullUpdate) {
