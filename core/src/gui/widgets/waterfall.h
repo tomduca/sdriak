@@ -149,6 +149,12 @@ namespace ImGui {
         void setFreqScaleVisible(bool visible);
         bool isFreqScaleVisible() { return freqScaleVisible; }
 
+        // Mark the displayed bandwidth instead of frequencies: offsets from
+        // the centre of the view (left positive, right negative), labelled
+        // along the bottom of the FFT.
+        void setSpanScaleVisible(bool visible);
+        bool isSpanScaleVisible() { return spanScaleVisible; }
+
         void setBandPlanPos(int pos);
 
         void setFFTHold(bool hold);
@@ -318,6 +324,7 @@ namespace ImGui {
 
         bool _fullUpdate = true;
         bool freqScaleVisible = true;
+        bool spanScaleVisible = false;
 
         int bandPlanPos = BANDPLAN_POS_BOTTOM;
 

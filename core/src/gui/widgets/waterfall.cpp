@@ -160,9 +160,12 @@ namespace ImGui {
         float scaleVOfsset = (float)style::scale(7.0f);
         for (double freq = startFreq; freq < upperFreq; freq += range) {
             double xPos = fftAreaMin.x + ((freq - lowerFreq) * horizScale);
-            window->DrawList->AddLine(ImVec2(roundf(xPos), fftAreaMin.y + 1),
-                                      ImVec2(roundf(xPos), fftAreaMax.y),
-                                      IM_COL32(50, 50, 50, 255), style::lineWidth());
+            // In span mode the grid follows the span marks below instead
+            if (!spanScaleVisible) {
+                window->DrawList->AddLine(ImVec2(roundf(xPos), fftAreaMin.y + 1),
+                                          ImVec2(roundf(xPos), fftAreaMax.y),
+                                          IM_COL32(50, 50, 50, 255), style::lineWidth());
+            }
             if (!freqScaleVisible) { continue; }
             window->DrawList->AddLine(ImVec2(roundf(xPos), fftAreaMax.y),
                                       ImVec2(roundf(xPos), fftAreaMax.y + scaleVOfsset),
@@ -170,6 +173,41 @@ namespace ImGui {
             printAndScale(freq, buf);
             ImVec2 txtSz = ImGui::CalcTextSize(buf);
             window->DrawList->AddText(ImVec2(roundf(xPos - (txtSz.x / 2.0)), fftAreaMax.y + txtSz.y), text, buf);
+        }
+
+        // Span scale: offsets from the centre of the view, so the marks measure
+        // the displayed bandwidth rather than a tuning. Zero in the middle,
+        // positive to the left and negative to the right, on the same round
+        // step as the frequency grid, labelled along the bottom of the FFT.
+        if (spanScaleVisible) {
+            const double viewCenter = (lowerFreq + upperFreq) / 2.0;
+            const double centerX = fftAreaMin.x + ((viewCenter - lowerFreq) * horizScale);
+            const int steps = (int)std::floor((viewBandwidth / 2.0) / range);
+            const float labelPad = (float)style::scale(3.0f);
+            for (int k = -steps; k <= steps; k++) {
+                const double xPos = centerX + (k * range * horizScale);
+                if (xPos < fftAreaMin.x || xPos > fftAreaMax.x) { continue; }
+                window->DrawList->AddLine(ImVec2(roundf(xPos), fftAreaMin.y + 1),
+                                          ImVec2(roundf(xPos), fftAreaMax.y),
+                                          IM_COL32(50, 50, 50, 255), style::lineWidth());
+                const double offset = -k * range; // left of centre is positive
+                if (k == 0) {
+                    sprintf(buf, "0");
+                }
+                else {
+                    printAndScale(std::fabs(offset), buf);
+                    std::string label = std::string(offset > 0 ? "+" : "-") + buf;
+                    snprintf(buf, sizeof(buf), "%s", label.c_str());
+                }
+                ImVec2 txtSz = ImGui::CalcTextSize(buf);
+                float tx = roundf(xPos - (txtSz.x / 2.0));
+                if (tx < fftAreaMin.x + labelPad || tx + txtSz.x > fftAreaMax.x - labelPad) { continue; }
+                ImVec2 tpos(tx, roundf(fftAreaMax.y - txtSz.y - labelPad));
+                window->DrawList->AddRectFilled(ImVec2(tpos.x - labelPad, tpos.y),
+                                                ImVec2(tpos.x + txtSz.x + labelPad, tpos.y + txtSz.y),
+                                                ImGui::ColorConvertFloat4ToU32(gui::themeManager.waterfallBg));
+                window->DrawList->AddText(tpos, text, buf);
+            }
         }
 
         // Data
@@ -1472,6 +1510,11 @@ namespace ImGui {
 
     float WaterFall::getFFTMax() {
         return fftMax;
+    }
+
+    void WaterFall::setSpanScaleVisible(bool visible) {
+        std::lock_guard<std::recursive_mutex> lck(buf_mtx);
+        spanScaleVisible = visible;
     }
 
     void WaterFall::setFreqScaleVisible(bool visible) {
