@@ -90,6 +90,11 @@ android {
         release {
             minifyEnabled false
             signingConfig = signingConfigs.release
+            // Personal build: its own ID and name, so it installs next to the
+            // official SDRIAK (signed with a different key) instead of
+            // clashing with it.
+            applicationIdSuffix ".tomduca"
+            resValue "string", "app_name", "SDRIAK TD"
         }
         debug {
             applicationIdSuffix ".debug"
