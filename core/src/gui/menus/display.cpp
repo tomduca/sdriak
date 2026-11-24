@@ -9,6 +9,7 @@
 #include <gui/main_window.h>
 #include <signal_path/signal_path.h>
 #include <gui/style.h>
+#include <gui/if_sideband.h>
 #include <utils/optionlist.h>
 #include <algorithm>
 
@@ -183,6 +184,8 @@ namespace displaymenu {
             gui::waterfall.setSpanScaleVisible(showSpanScale);
             core::configManager.edit().set("showSpanScale", showSpanScale);
         }
+
+        ifsideband::drawSettings();
 
         if (ImGui::Checkbox("Lock Menu Order##_sdrpp", &gui::menu.locked)) {
             core::configManager.edit().set("lockMenuOrder", gui::menu.locked);

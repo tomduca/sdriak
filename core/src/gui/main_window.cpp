@@ -31,6 +31,7 @@
 #include <gui/colormaps.h>
 #include <gui/widgets/snr_meter.h>
 #include <gui/tuner.h>
+#include <gui/if_sideband.h>
 #include <algorithm>
 #include <cmath>
 
@@ -200,6 +201,7 @@ void MainWindow::init() {
     sinkmenu::init();
     bandplanmenu::init();
     displaymenu::init();
+    ifsideband::init();
     vfo_color_menu::init();
     module_manager_menu::init();
 #ifdef __ANDROID__
@@ -476,6 +478,15 @@ void MainWindow::draw() {
         ImGui::PopID();
     }
     if (playButtonLocked && !tmpPlaySate) { style::endDisabled(); }
+
+    // Optional radio-sideband toggle for an SDR on a transceiver's IF (Display
+    // menu). Placed before the flexible-width computation below, which starts
+    // from the cursor, so the row still fits.
+    if (ifsideband::isEnabled()) {
+        ImGui::SameLine();
+        centerInRow(btnSize.y + 2.0f * toolbarButtonPadding);
+        ifsideband::drawButton(btnSize, toolbarButtonPadding);
+    }
 
     // Handle auto-start
     if (autostart) {
