@@ -9,6 +9,7 @@
 #include <gui/main_window.h>
 #include <signal_path/signal_path.h>
 #include <gui/style.h>
+#include <gui/if_sideband.h>
 #include <utils/optionlist.h>
 #include <algorithm>
 
@@ -167,6 +168,8 @@ namespace displaymenu {
             gui::waterfall.setFullWaterfallUpdate(fullWaterfallUpdate);
             core::configManager.edit().set("fullWaterfallUpdate", fullWaterfallUpdate);
         }
+
+        ifsideband::drawSettings();
 
         if (ImGui::Checkbox("Lock Menu Order##_sdrpp", &gui::menu.locked)) {
             core::configManager.edit().set("lockMenuOrder", gui::menu.locked);
