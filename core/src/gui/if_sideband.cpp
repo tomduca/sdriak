@@ -9,7 +9,7 @@
 
 namespace ifsideband {
     namespace {
-        bool enabled = false;
+        bool enabled = true; // personal build: on unless turned off in Display
         double usbFreq = 8831500.0; // IF frequency while the radio is on USB
         double lsbFreq = 8828500.0; // IF frequency while the radio is on LSB
         bool radioUsb = true;       // last sideband chosen with the toggle
